@@ -997,6 +997,23 @@ class QuillRawEditorState extends EditorState
       _styles = _styles!.merge(widget.config.customStyles!);
     }
 
+    // Apply custom placeholder style if provided
+    if (widget.config.placeholderStyle != null && _styles!.placeHolder != null) {
+      final defaultPlaceholderStyle = _styles!.placeHolder!;
+      final mergedPlaceholderStyle = defaultPlaceholderStyle.style.merge(
+        widget.config.placeholderStyle,
+      );
+      final customPlaceholder = DefaultTextBlockStyle(
+        mergedPlaceholderStyle,
+        defaultPlaceholderStyle.horizontalSpacing,
+        defaultPlaceholderStyle.verticalSpacing,
+        defaultPlaceholderStyle.lineSpacing,
+        defaultPlaceholderStyle.decoration,
+      );
+      // Use merge to update only the placeholder style
+      _styles = _styles!.merge(DefaultStyles(placeHolder: customPlaceholder));
+    }
+
     _requestAutoFocusIfShould();
   }
 
@@ -1198,11 +1215,13 @@ class QuillRawEditorState extends EditorState
   }
 
   void _handleFocusChanged() {
+    if (!mounted) return;
     if (dirty) {
       requestKeyboard();
-      SchedulerBinding.instance.addPostFrameCallback(
-        (_) => _handleFocusChanged(),
-      );
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _handleFocusChanged();
+      });
       return;
     }
     openOrCloseConnection();
@@ -1336,6 +1355,7 @@ class QuillRawEditorState extends EditorState
   /// keyboard become visible.
   @override
   void requestKeyboard() {
+    if (!mounted) return;
     if (controller.skipRequestKeyboard) {
       controller.skipRequestKeyboard = false;
       return;
